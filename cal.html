@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Modern Calculator</title>
+  <style>
+    :root{
+      --bg:#0f1724; --panel:#0b1220; --accent:#7c3aed; --muted:#94a3b8; --glass: rgba(255,255,255,0.03);
+      --btn:#111827; --btn-hover: rgba(255,255,255,0.04);
+    }
+    *{box-sizing:border-box;}
+    html,body{height:100%;}
+    body{
+      margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      background: linear-gradient(180deg,#071022 0%, #081428 40%, #07122a 100%);
+      color:#e6eef8; display:flex; align-items:center; justify-content:center; padding:32px;
+    }
+    .container{width:min(520px,96vw); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:16px; padding:18px; box-shadow: 0 8px 30px rgba(2,6,23,0.6);}
+    header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;}
+    .brand{display:flex; gap:12px; align-items:center;}
+    .logo{width:44px; height:44px; border-radius:10px; background:linear-gradient(45deg,var(--accent), #06b6d4); display:flex; align-items:center; justify-content:center; font-weight:700;}
+    h1{font-size:18px;margin:0;}
+    p.sub{margin:0; color:var(--muted); font-size:12px;}
+
+    .panel{background:var(--panel); border-radius:12px; padding:16px;}
+    .display{background:var(--glass); border-radius:10px; padding:12px; min-height:86px; display:flex; flex-direction:column; justify-content:center; gap:6px;}
+    .expr{font-size:14px; color:var(--muted); word-break:break-all; min-height:20px;}
+    .result{font-size:28px; font-weight:600; word-break:break-word;}
+
+    .keypad{display:grid; grid-template-columns: repeat(4,1fr); gap:10px; margin-top:14px;}
+    button.key{background:var(--btn); border:1px solid rgba(255,255,255,0.03); color:inherit; padding:14px; border-radius:10px; font-size:16px; cursor:pointer; transition:transform .08s ease, background .08s ease;}
+    button.key:active{transform:scale(.98);}
+    button.operator{background:linear-gradient(180deg, rgba(124,58,237,0.12), rgba(124,58,237,0.06)); border:1px solid rgba(124,58,237,0.2);}
+    button.fn{background:transparent; color:var(--muted);}
+    .wide{grid-column: span 2;}
+    .footer{display:flex; justify-content:space-between; margin-top:12px; color:var(--muted); font-size:13px;}
+    .toggle{display:inline-flex; gap:8px; align-items:center;}
+    .small{font-size:12px;}
+
+    @media (max-width:420px){ .result{font-size:22px} .logo{width:36px;height:36px} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">C</div>
+        <div>
+          <h1>Modern Calculator</h1>
+          <p class="sub">Basic + scientific functions • keyboard friendly</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label class="toggle small"><input id="mode" type="checkbox"> Scientific</label>
+      </div>
+    </header>
+
+    <main class="panel">
+      <div class="display" id="display">
+        <div class="expr" id="expression"></div>
+        <div class="result" id="result">0</div>
+      </div>
+
+      <div class="keypad" id="keypad">
+        <button class="key fn" data-action="clear">AC</button>
+        <button class="key fn" data-action="del">DEL</button>
+        <button class="key fn" data-action="paren">( )</button>
+        <button class="key operator" data-value="/">÷</button>
+
+        <button class="key" data-value="7">7</button>
+        <button class="key" data-value="8">8</button>
+        <button class="key" data-value="9">9</button>
+        <button class="key operator" data-value="*">×</button>
+
+        <button class="key" data-value="4">4</button>
+        <button class="key" data-value="5">5</button>
+        <button class="key" data-value="6">6</button>
+        <button class="key operator" data-value="-">−</button>
+
+        <button class="key" data-value="1">1</button>
+        <button class="key" data-value="2">2</button>
+        <button class="key" data-value="3">3</button>
+        <button class="key operator" data-value="+">+</button>
+
+        <button class="key wide" data-action="percent">%</button>
+        <button class="key" data-value="0">0</button>
+        <button class="key" data-value=".">.</button>
+        <button class="key operator" data-action="equals">=</button>
+      </div>
+
+      <div class="footer">
+        <div class="small">Designed with ❤️ — keyboard supported</div>
+        <div class="small">v1.0</div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const exprEl = document.getElementById('expression');
+    const resEl = document.getElementById('result');
+    const keypad = document.getElementById('keypad');
+    const modeToggle = document.getElementById('mode');
+
+    let expression = '';
+
+    function updateDisplay(){
+      exprEl.textContent = expression;
+      try{
+        if(expression.trim() === '') { resEl.textContent = '0'; return; }
+        const sanitized = expression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+        const value = Function('"use strict"; return (' + sanitized + ')')();
+        if(value === Infinity || value === -Infinity || Number.isNaN(value)) {
+          resEl.textContent = 'Error';
+        } else {
+          resEl.textContent = String(value);
+        }
+      } catch(e){
+        resEl.textContent = '';
+      }
+    }
+
+    keypad.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const action = btn.dataset.action;
+      const val = btn.dataset.value;
+      if(action === 'clear') { expression = ''; updateDisplay(); return; }
+      if(action === 'del') { expression = expression.slice(0,-1); updateDisplay(); return; }
+      if(action === 'equals') { expression = resEl.textContent; updateDisplay(); return; }
+      if(action === 'paren') {
+        const open = (expression.match(/\(/g)||[]).length;
+        const close = (expression.match(/\)/g)||[]).length;
+        expression += (open === close) ? '(' : ')';
+        updateDisplay(); return;
+      }
+      if(action === 'percent') { expression += '/100'; updateDisplay(); return; }
+      if(val) { expression += val; updateDisplay(); return; }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if(e.key >= '0' && e.key <= '9') { expression += e.key; updateDisplay(); return; }
+      if(e.key === '.' ) { expression += '.'; updateDisplay(); return; }
+      if(['+','-','*','/'].includes(e.key)) { expression += e.key; updateDisplay(); return; }
+      if(e.key === 'Enter') { expression = resEl.textContent; updateDisplay(); return; }
+      if(e.key === 'Backspace') { expression = expression.slice(0,-1); updateDisplay(); return; }
+      if(e.key === '%') { expression += '/100'; updateDisplay(); return; }
+      if(e.key === '(' || e.key === ')') { expression += e.key; updateDisplay(); return; }
+      if(e.key === 'Escape') { expression = ''; updateDisplay(); return; }
+    });
+  </script>
+</body>
+</html>
